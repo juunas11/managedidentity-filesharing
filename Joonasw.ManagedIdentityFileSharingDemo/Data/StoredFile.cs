@@ -1,0 +1,21 @@
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace Joonasw.ManagedIdentityFileSharingDemo.Data
+{
+    public class StoredFile
+    {
+        [Key]
+        public Guid Id { get; set; }
+        [MaxLength(256)]
+        public string FileName { get; set; }
+        [MaxLength(512)]
+        public string Description { get; set; }
+        public Guid StoredBlobName { get; set; }
+        [MaxLength(64)]
+        public string CreatorTenantId { get; set; }
+        [MaxLength(64)]
+        public string CreatorObjectId { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+    }
+}
