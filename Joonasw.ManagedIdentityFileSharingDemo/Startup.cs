@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Joonasw.ManagedIdentityFileSharingDemo.Data;
+﻿using Joonasw.ManagedIdentityFileSharingDemo.Data;
 using Joonasw.ManagedIdentityFileSharingDemo.Options;
 using Joonasw.ManagedIdentityFileSharingDemo.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -48,10 +42,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
             AddAuthentication(services);
             services.Configure<AuthenticationOptions>(_configuration.GetSection("Authentication"));
             services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
-            services.AddDbContext<AppDbContext>(o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")));
-            services.AddTransient<AccessTokenFetcher>();
-            services.AddTransient<AzureBlobStorageService>();
-            services.AddTransient<FileService>();
+            services.AddDbContext<AppDbContext>(o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")), ServiceLifetime.Transient);
+            services.AddSingleton<AccessTokenFetcher>();
+            services.AddSingleton<DbContextFactory>();
+            services.AddSingleton<AzureBlobStorageService>();
+            services.AddSingleton<FileService>();
+            services.AddHttpContextAccessor();
         }
 
         private void AddAuthentication(IServiceCollection services)
@@ -62,7 +58,6 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                     var opts = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
                     o.Authority = opts.Authority;
                     o.ClientId = opts.ClientId;
-                    //o.ClientSecret = opts.ClientSecret;
                     o.CallbackPath = "/aad-callback";
                     o.ResponseType = "id_token";
                     o.CorrelationCookie.IsEssential = true;
@@ -91,7 +86,6 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
             else
             {
                 app.UseExceptionHandler("/error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 

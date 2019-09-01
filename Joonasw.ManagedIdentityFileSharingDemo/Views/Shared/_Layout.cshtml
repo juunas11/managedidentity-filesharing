@@ -39,7 +39,7 @@
                     {
                         <span class="navbar-text">@User.GetDisplayName() (@User.GetUserName())</span>
                         <form class="form-inline" method="post" asp-controller="Account" asp-action="LogOut">
-                            <button type="submit" class="btn btn-outline-info ml-1">Log out</button>
+                            <button type="submit" class="btn btn-outline-info ml-sm-1">Log out</button>
                         </form>
                     }
                 </div>
@@ -77,7 +77,6 @@
                 integrity="sha384-xrRywqdh3PHs8keKZN+8zzc5TX0GRTLCcmivcbNJWm2rs5C8PRhcEn3czEjhAO9o">
         </script>
     </environment>
-    <script src="~/js/site.js" asp-append-version="true"></script>
 
     @RenderSection("Scripts", required: false)
 </body>

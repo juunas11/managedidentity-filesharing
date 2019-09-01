@@ -28,5 +28,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         {
             return await GetAccessTokenAsync("https://storage.azure.com/");
         }
+
+        public async Task<string> GetSqlAccessTokenAsync()
+        {
+            return await GetAccessTokenAsync("https://database.windows.net/");
+        }
     }
 }

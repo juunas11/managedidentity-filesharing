@@ -13,19 +13,20 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 {
     public class FileService
     {
-        private readonly AppDbContext _dbContext;
+        private readonly DbContextFactory _dbContextFactory;
         private readonly AzureBlobStorageService _blobStorageService;
 
         public FileService(
-            AppDbContext dbContext,
+            DbContextFactory dbContextFactory,
             AzureBlobStorageService blobStorageService)
         {
-            _dbContext = dbContext;
+            _dbContextFactory = dbContextFactory;
             _blobStorageService = blobStorageService;
         }
 
         public async Task UploadFileAsync(IFormFile file, ClaimsPrincipal user)
         {
+            var dbContext = await _dbContextFactory.CreateContextAsync();
             Guid storedBlobId;
             using (var fileStream = file.OpenReadStream())
             {
@@ -42,13 +43,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 FileContentType = !string.IsNullOrEmpty(file.ContentType) ? file.ContentType : "application/octet-stream",
                 StoredBlobId = storedBlobId
             };
-            await _dbContext.StoredFiles.AddAsync(storedFile);
-            await _dbContext.SaveChangesAsync();
+            await dbContext.StoredFiles.AddAsync(storedFile);
+            await dbContext.SaveChangesAsync();
         }
 
         public async Task<(Stream stream, string fileName, string contentType)> DownloadFileAsync(Guid id, ClaimsPrincipal user)
         {
-            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id);
+            var dbContext = await _dbContextFactory.CreateContextAsync();
+            var file = await dbContext.StoredFiles.SingleAsync(f => f.Id == id);
             if (user.IsPersonalAccount())
             {
                 if (file.CreatorObjectId != user.GetObjectId())
@@ -70,7 +72,8 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
         public async Task<FileModel[]> GetFilesAsync(ClaimsPrincipal user)
         {
-            IQueryable<StoredFile> files = _dbContext.StoredFiles;
+            var dbContext = await _dbContextFactory.CreateContextAsync();
+            IQueryable<StoredFile> files = dbContext.StoredFiles;
             if (user.IsPersonalAccount())
             {
                 files = files.Where(f => f.CreatorObjectId == user.GetObjectId());
