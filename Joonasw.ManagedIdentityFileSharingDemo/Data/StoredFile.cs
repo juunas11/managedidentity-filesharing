@@ -15,5 +15,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Data
         [MaxLength(64)]
         public string CreatorObjectId { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
+        [MaxLength(128)]
+        public string FileContentType { get; set; }
     }
 }

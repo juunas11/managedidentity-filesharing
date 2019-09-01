@@ -20,12 +20,19 @@ else
 
 <form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
     <div class="form-group">
-        @*<div class="custom-file">
-            <input type="file" class="custom-file-input" asp-for="NewFile">
-            <label class="custom-file-label" asp-for="NewFile">Choose file</label>
-        </div>*@
         <input type="file" asp-for="NewFile" />
     </div>
 
     <button type="submit" class="btn btn-primary">Upload</button>
 </form>
+
+<hr />
+
+<h2>Files</h2>
+
+@foreach (var file in Model.Files)
+{
+    <p>
+        <a asp-controller="Home" asp-action="Download" asp-route-id="@file.Id">@file.Name</a> (Uploaded @file.CreatedAt)
+    </p>
+}
