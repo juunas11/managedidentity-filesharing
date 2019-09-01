@@ -38,6 +38,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 o.Filters.Add<AutoValidateAntiforgeryTokenAttribute>();
                 o.Filters.Add(new AuthorizeFilter());
             }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
 
             AddAuthentication(services);
             services.Configure<AuthenticationOptions>(_configuration.GetSection("Authentication"));
