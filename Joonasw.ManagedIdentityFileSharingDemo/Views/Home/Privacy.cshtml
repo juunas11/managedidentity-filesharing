@@ -3,4 +3,24 @@
 }
 <h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<p>
+    This app has been made for demonstration purposes and as such hasn't gone through extensive reviews.
+    You use it at your own risk.
+</p>
+<p>
+    The files you upload are encrypted at rest by Azure Storage and require administrative access to the Storage account to access.
+    Anyone with such administrative access can access the files however.
+    Only upload files that you consider to be public and non-confidential.
+</p>
+<p>
+    The only user metadata stored for each file is the tenant id and user id of the uploader.
+    (In addition to the name of the file uploaded)
+    The tenant id and user id are GUIDs/UUIDs, usernames and email addresses are not stored.
+</p>
+<p>
+    Azure's Application Insights service is used to monitor the application back-end and front-end.
+    This telemetry is anonymized, but a session identifier will correlate actions done by a single user to help with troubleshooting.
+</p>
+<p>
+    Other cookies used are related to security and authentication.
+</p>

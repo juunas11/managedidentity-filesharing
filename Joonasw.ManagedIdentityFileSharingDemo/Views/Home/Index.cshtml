@@ -1,8 +1,31 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model IndexModel
+@{
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@if (User.IsPersonalAccount())
+{
+    <p class="alert alert-info">
+        You are signed in with a personal MS account.
+        Files you upload are only visible to you.
+    </p>
+}
+else
+{
+    <p class="alert alert-info">
+        You are signed with an organizational account.
+        Files you upload are visible to all users in your organization.
+    </p>
+}
+
+<form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        @*<div class="custom-file">
+            <input type="file" class="custom-file-input" asp-for="NewFile">
+            <label class="custom-file-label" asp-for="NewFile">Choose file</label>
+        </div>*@
+        <input type="file" asp-for="NewFile" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>

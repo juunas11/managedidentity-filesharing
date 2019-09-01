@@ -2,16 +2,33 @@
 using Microsoft.AspNetCore.Mvc;
 using Joonasw.ManagedIdentityFileSharingDemo.Models;
 using Microsoft.AspNetCore.Routing;
+using System.Threading.Tasks;
+using Joonasw.ManagedIdentityFileSharingDemo.Services;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
 {
     [Route("/")]
     public class HomeController : Controller
     {
+        private readonly FileService _fileService;
+
+        public HomeController(FileService fileService)
+        {
+            _fileService = fileService;
+        }
+
         [AcceptVerbs("GET", "HEAD")]
         public IActionResult Index()
         {
-            return View();
+            var model = new IndexModel();
+            return View(model);
+        }
+
+        [HttpPost("/upload")]
+        public async Task<IActionResult> Upload(IndexModel model)
+        {
+            await _fileService.UploadFileAsync(model.NewFile, User);
+            return RedirectToAction(nameof(Index));
         }
 
         [AcceptVerbs("GET", "HEAD", Route = "/privacy")]

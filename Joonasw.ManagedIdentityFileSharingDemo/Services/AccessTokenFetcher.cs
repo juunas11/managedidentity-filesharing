@@ -23,5 +23,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             var tokenProvider = new AzureServiceTokenProvider();
             return await tokenProvider.GetAccessTokenAsync(resource, _tenantId);
         }
+
+        public async Task<string> GetStorageAccessTokenAsync()
+        {
+            return await GetAccessTokenAsync("https://storage.azure.com/");
+        }
     }
 }

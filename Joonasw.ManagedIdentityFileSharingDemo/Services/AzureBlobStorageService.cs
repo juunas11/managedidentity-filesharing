@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 {
-    public class BlobService
+    public class AzureBlobStorageService
     {
         private readonly StorageOptions _options;
         private readonly AccessTokenFetcher _accessTokenFetcher;
 
-        public BlobService(
+        public AzureBlobStorageService(
             IOptions<StorageOptions> options,
             AccessTokenFetcher accessTokenFetcher)
         {
@@ -32,15 +32,15 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         /// <returns>Generated blob id</returns>
         public async Task<Guid> UploadBlobAsync(Stream content, ClaimsPrincipal user)
         {
-            var blobName = Guid.NewGuid();
-            CloudBlockBlob blob = await GetBlobReferenceAsync($"{GetBlobFolder(user)}/{blobName}");
+            var blobId = Guid.NewGuid();
+            CloudBlockBlob blob = await GetBlobReferenceAsync($"{GetBlobFolder(user)}/{blobId}");
             await blob.UploadFromStreamAsync(content);
-            return blobName;
+            return blobId;
         }
 
-        public async Task<Stream> DownloadBlobAsync(Guid blobName, ClaimsPrincipal user)
+        public async Task<Stream> DownloadBlobAsync(Guid blobId, ClaimsPrincipal user)
         {
-            CloudBlockBlob blob = await GetBlobReferenceAsync($"{GetBlobFolder(user)}/{blobName}");
+            CloudBlockBlob blob = await GetBlobReferenceAsync($"{GetBlobFolder(user)}/{blobId}");
             return await blob.OpenReadAsync();
         }
 
@@ -54,7 +54,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 return container.GetBlockBlobReference(name);
             }
 
-            string accessToken = await _accessTokenFetcher.GetAccessTokenAsync("https://storage.azure.com/");
+            string accessToken = await _accessTokenFetcher.GetStorageAccessTokenAsync();
             var tokenCredential = new TokenCredential(accessToken);
             var credentials = new StorageCredentials(tokenCredential);
             var uri = new Uri($"https://{_options.AccountName}.blob.core.windows.net/{_options.FileContainerName}/{name}");
