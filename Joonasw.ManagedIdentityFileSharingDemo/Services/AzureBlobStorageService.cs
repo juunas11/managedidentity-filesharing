@@ -1,5 +1,4 @@
-﻿using Joonasw.ManagedIdentityFileSharingDemo.Extensions;
-using Joonasw.ManagedIdentityFileSharingDemo.Options;
+﻿using Joonasw.ManagedIdentityFileSharingDemo.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
@@ -33,14 +32,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         public async Task<Guid> UploadBlobAsync(Stream content, ClaimsPrincipal user)
         {
             var blobId = Guid.NewGuid();
-            CloudBlockBlob blob = await GetBlobReferenceAsync($"{GetBlobFolder(user)}/{blobId}");
+            CloudBlockBlob blob = await GetBlobReferenceAsync($"{FileAccessUtils.GetBlobFolder(user)}/{blobId}");
             await blob.UploadFromStreamAsync(content);
             return blobId;
         }
 
         public async Task<Stream> DownloadBlobAsync(Guid blobId, ClaimsPrincipal user)
         {
-            CloudBlockBlob blob = await GetBlobReferenceAsync($"{GetBlobFolder(user)}/{blobId}");
+            CloudBlockBlob blob = await GetBlobReferenceAsync($"{FileAccessUtils.GetBlobFolder(user)}/{blobId}");
             return await blob.OpenReadAsync();
         }
 
@@ -60,15 +59,6 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             var uri = new Uri($"https://{_options.AccountName}.blob.core.windows.net/{_options.FileContainerName}/{name}");
             var blob = new CloudBlockBlob(uri, credentials);
             return blob;
-        }
-
-        private string GetBlobFolder(ClaimsPrincipal user)
-        {
-            // If user is personal MSA, folder is msa-{user-id}
-            // If user is not personal, folder is org-{tenant-id}
-            return user.IsPersonalAccount()
-                ? $"msa-{user.GetObjectId()}"
-                : $"org-{user.GetTenantId()}";
         }
     }
 }

@@ -51,20 +51,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         {
             var dbContext = await _dbContextFactory.CreateContextAsync();
             var file = await dbContext.StoredFiles.SingleAsync(f => f.Id == id);
-            if (user.IsPersonalAccount())
-            {
-                if (file.CreatorObjectId != user.GetObjectId())
-                {
-                    throw new AccessDeniedException();
-                }
-            }
-            else
-            {
-                if (file.CreatorTenantId != user.GetTenantId())
-                {
-                    throw new AccessDeniedException();
-                }
-            }
+            FileAccessUtils.CheckAccess(file, user);
 
             var stream = await _blobStorageService.DownloadBlobAsync(file.StoredBlobId, user);
             return (stream, file.FileName, file.FileContentType);
@@ -73,15 +60,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         public async Task<FileModel[]> GetFilesAsync(ClaimsPrincipal user)
         {
             var dbContext = await _dbContextFactory.CreateContextAsync();
-            IQueryable<StoredFile> files = dbContext.StoredFiles;
-            if (user.IsPersonalAccount())
-            {
-                files = files.Where(f => f.CreatorObjectId == user.GetObjectId());
-            }
-            else
-            {
-                files = files.Where(f => f.CreatorTenantId == user.GetTenantId());
-            }
+            var files = dbContext.StoredFiles.ApplyAccessFilter(user);
 
             return await files
                 .OrderByDescending(f => f.CreatedAt)
