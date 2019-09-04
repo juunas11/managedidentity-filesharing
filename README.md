@@ -48,13 +48,13 @@ So you'll have to create the Azure resources manually:
 1. Enable a System-assigned Managed Identity on the App Service
 1. Assign connection string "DefaultConnection" to the App Service with Azure SQL type e.g. `Server=tcp:servernamehere.database.windows.net,1433;Initial Catalog=DatabaseNameHere;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;`
 1. Assign app settings to the App Service:
-  - Authentication__ClientId: your Azure AD application id / client id
-  - Storage__AccountName: your Storage account name
-  - Storage__FileContainerName: files (or another name if you made it with another name)
-  - HTTPS_PORT: 443
+   - Authentication__ClientId: your Azure AD application id / client id
+   - Storage__AccountName: your Storage account name
+   - Storage__FileContainerName: files (or another name if you made it with another name)
+   - HTTPS_PORT: 443
 1. Create the Storage container "files"
 1. Assign the "Storage Blob Data Contributor" role to the App Service's identity on the created container
-  - You can do this via the Portal or by running SetupScripts/Assign-Permissions.ps1 (set your own values in the script first though)
+   - You can do this via the Portal or by running SetupScripts/Assign-Permissions.ps1 (set your own values in the script first though)
 1. Enable AAD admin on the SQL server
 1. Connect to the SQL server using the AAD admin
 1. Run the SetupScripts/Migrations.sql on the database to create tables
