@@ -18,12 +18,6 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             }
         }
 
-        public async Task<string> GetAccessTokenAsync(string resource)
-        {
-            var tokenProvider = new AzureServiceTokenProvider();
-            return await tokenProvider.GetAccessTokenAsync(resource, _tenantId);
-        }
-
         public async Task<string> GetStorageAccessTokenAsync()
         {
             return await GetAccessTokenAsync("https://storage.azure.com/");
@@ -32,6 +26,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         public async Task<string> GetSqlAccessTokenAsync()
         {
             return await GetAccessTokenAsync("https://database.windows.net/");
+        }
+
+        private async Task<string> GetAccessTokenAsync(string resource)
+        {
+            // This will return a cached token if one is there and valid
+            // The token provider has a static in-memory cache
+            var tokenProvider = new AzureServiceTokenProvider();
+            return await tokenProvider.GetAccessTokenAsync(resource, _tenantId);
         }
     }
 }

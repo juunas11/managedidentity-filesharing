@@ -30,9 +30,11 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             bool useManagedIdentity = !_hostingEnvironment.IsDevelopment();
             if (!useManagedIdentity)
             {
+                // In Development, we connect to a local SQL Server, no need for an access token
                 return context;
             }
 
+            // In Azure, get an access token and attach it to the connection
             string accessToken = await _accessTokenFetcher.GetSqlAccessTokenAsync();
             var conn = (SqlConnection)context.Database.GetDbConnection();
             conn.AccessToken = accessToken;

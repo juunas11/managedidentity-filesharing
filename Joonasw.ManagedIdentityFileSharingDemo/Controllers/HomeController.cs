@@ -1,11 +1,10 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using Joonasw.ManagedIdentityFileSharingDemo.Models;
-using Microsoft.AspNetCore.Routing;
-using System.Threading.Tasks;
+﻿using Joonasw.ManagedIdentityFileSharingDemo.Models;
 using Joonasw.ManagedIdentityFileSharingDemo.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using System;
-using System.IO;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
 {
@@ -32,15 +31,27 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         [HttpPost("/upload")]
         public async Task<IActionResult> Upload(IndexModel model)
         {
+            // Do some additional checks
+            if (ModelState.IsValid)
+            {
+                if (model.NewFile.FileName.Length > 256)
+                {
+                    ModelState.AddModelError(nameof(IndexModel.NewFile), "File name must be max 256 characters");
+                }
+                else if ((model.NewFile.ContentType?.Length ?? 0) > 128)
+                {
+                    ModelState.AddModelError(nameof(IndexModel.NewFile), "Content type of file must be max 128 characters");
+                }
+                else if (model.NewFile.Length > 1 * 1024 * 1024)
+                {
+                    ModelState.AddModelError(nameof(IndexModel.NewFile), "File max size 1 MB");
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 model.Files = await _fileService.GetFilesAsync(User);
                 return View(nameof(Index), model);
-            }
-
-            if (model.NewFile.Length > 1 * 1024 * 1024)
-            {
-                throw new Exception($"Too large file {model.NewFile.Length} bytes");
             }
 
             await _fileService.UploadFileAsync(model.NewFile, User);
