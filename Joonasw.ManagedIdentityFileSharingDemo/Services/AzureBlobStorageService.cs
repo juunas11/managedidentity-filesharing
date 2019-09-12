@@ -43,6 +43,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             return await blob.OpenReadAsync();
         }
 
+        public async Task DeleteBlobAsync(Guid blobId, ClaimsPrincipal user)
+        {
+            CloudBlockBlob blob = await GetBlobReferenceAsync($"{FileAccessUtils.GetBlobFolder(user)}/{blobId}");
+            await blob.DeleteAsync();
+        }
+
         private async Task<CloudBlockBlob> GetBlobReferenceAsync(string name)
         {
             if (_options.UseEmulator)

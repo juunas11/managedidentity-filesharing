@@ -33,7 +33,6 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 return context;
             }
 
-
             string accessToken = await _accessTokenFetcher.GetSqlAccessTokenAsync();
             var conn = (SqlConnection)context.Database.GetDbConnection();
             conn.AccessToken = accessToken;

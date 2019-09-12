@@ -21,6 +21,8 @@ else
 <form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
     <div class="form-group">
         <input type="file" asp-for="NewFile" />
+        <br />
+        <span class="text-danger" asp-validation-for="NewFile"></span>
     </div>
 
     <button type="submit" class="btn btn-primary">Upload</button>
@@ -34,5 +36,27 @@ else
 {
     <p>
         <a asp-controller="Home" asp-action="Download" asp-route-id="@file.Id">@file.Name</a> (Uploaded @file.CreatedAt)
+        <button type="button" class="btn btn-sm btn-danger btn-delete-file" data-id="@file.Id">Delete</button>
     </p>
+}
+
+<form id="deleteForm" asp-controller="Home" asp-action="Delete" method="post">
+    <input id="fileToDelete" name="fileToDelete" value="" type="hidden" />
+</form>
+
+@section Scripts {
+<script>
+    $(function(){
+        $('.btn-delete-file').click(function () {
+            var result = confirm('Are you sure?');
+            if (!result) {
+                return;
+            }
+
+            var id = $(this).data('id');
+            $('#fileToDelete').val(id);
+            $('#deleteForm').submit();
+        });
+    });
+</script>
 }

@@ -32,6 +32,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         [HttpPost("/upload")]
         public async Task<IActionResult> Upload(IndexModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                model.Files = await _fileService.GetFilesAsync(User);
+                return View(nameof(Index), model);
+            }
+
             if (model.NewFile.Length > 1 * 1024 * 1024)
             {
                 throw new Exception($"Too large file {model.NewFile.Length} bytes");
@@ -53,6 +59,13 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
             {
                 return Forbid();
             }
+        }
+
+        [HttpPost("/delete")]
+        public async Task<IActionResult> Delete(Guid fileToDelete)
+        {
+            await _fileService.DeleteFileAsync(fileToDelete, User);
+            return RedirectToAction(nameof(Index));
         }
 
         [AcceptVerbs("GET", "HEAD", Route = "/privacy")]

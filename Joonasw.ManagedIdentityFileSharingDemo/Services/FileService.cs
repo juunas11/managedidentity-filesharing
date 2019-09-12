@@ -72,5 +72,18 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 })
                 .ToArrayAsync();
         }
+
+        public async Task DeleteFileAsync(Guid id, ClaimsPrincipal user)
+        {
+            var dbContext = await _dbContextFactory.CreateContextAsync();
+            var file = await dbContext.StoredFiles.SingleAsync(f => f.Id == id);
+            FileAccessUtils.CheckAccess(file, user);
+
+            dbContext.StoredFiles.Remove(file);
+
+            await _blobStorageService.DeleteBlobAsync(file.StoredBlobId, user);
+
+            await dbContext.SaveChangesAsync();
+        }
     }
 }
