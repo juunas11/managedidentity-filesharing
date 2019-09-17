@@ -1,8 +1,9 @@
-﻿using Joonasw.ManagedIdentityFileSharingDemo.Options;
+﻿using Azure;
+using Azure.Identity;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Joonasw.ManagedIdentityFileSharingDemo.Options;
 using Microsoft.Extensions.Options;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Auth;
-using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.IO;
 using System.Security.Claims;
@@ -13,14 +14,11 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
     public class AzureBlobStorageService
     {
         private readonly StorageOptions _options;
-        private readonly AccessTokenFetcher _accessTokenFetcher;
 
         public AzureBlobStorageService(
-            IOptions<StorageOptions> options,
-            AccessTokenFetcher accessTokenFetcher)
+            IOptions<StorageOptions> options)
         {
             _options = options.Value;
-            _accessTokenFetcher = accessTokenFetcher;
         }
 
         /// <summary>
@@ -32,8 +30,8 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         public async Task<Guid> UploadBlobAsync(Stream content, ClaimsPrincipal user)
         {
             var blobId = Guid.NewGuid();
-            CloudBlockBlob blob = await GetBlobReferenceAsync(blobId, user);
-            await blob.UploadFromStreamAsync(content);
+            BlobClient client = GetBlobClient(blobId, user);
+            await client.UploadAsync(content);
             return blobId;
         }
 
@@ -45,8 +43,9 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         /// <returns>Open stream to the blob in Storage</returns>
         public async Task<Stream> DownloadBlobAsync(Guid blobId, ClaimsPrincipal user)
         {
-            CloudBlockBlob blob = await GetBlobReferenceAsync(blobId, user);
-            return await blob.OpenReadAsync();
+            BlobClient client = GetBlobClient(blobId, user);
+            Response<BlobDownloadInfo> res = await client.DownloadAsync();
+            return res.Value.Content;
         }
 
         /// <summary>
@@ -56,31 +55,33 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         /// <param name="user">Current user</param>
         public async Task DeleteBlobAsync(Guid blobId, ClaimsPrincipal user)
         {
-            CloudBlockBlob blob = await GetBlobReferenceAsync(blobId, user);
-            await blob.DeleteAsync();
+            BlobClient client = GetBlobClient(blobId, user);
+            await client.DeleteAsync();
         }
 
-        private async Task<CloudBlockBlob> GetBlobReferenceAsync(Guid blobId, ClaimsPrincipal user)
+        private BlobClient GetBlobClient(Guid blobId, ClaimsPrincipal user)
         {
             // The blob folder is the tenant or user id
             // Personal accounts -> user id, organizational accounts -> tenant id
             string name = $"{FileAccessUtils.GetBlobFolder(user)}/{blobId}";
 
+            BlobServiceClient client;
+
             if (_options.UseEmulator)
             {
-                // Locally we use Storage Emulator, we have to interact with it a bit differently
-                var account = CloudStorageAccount.DevelopmentStorageAccount;
-                var blobClient = account.CreateCloudBlobClient();
-                var container = blobClient.GetContainerReference(_options.FileContainerName);
-                return container.GetBlockBlobReference(name);
+                // Locally we use Storage Emulator
+                client = new BlobServiceClient("UseDevelopmentStorage=true");
+            }
+            else
+            {
+                client = new BlobServiceClient(
+                    new Uri($"https://{_options.AccountName}.blob.core.windows.net"),
+                    new ManagedIdentityCredential());
             }
 
-            // In Azure, acquire access token and use that
-            string accessToken = await _accessTokenFetcher.GetStorageAccessTokenAsync();
-            var tokenCredential = new TokenCredential(accessToken);
-            var credentials = new StorageCredentials(tokenCredential);
-            var uri = new Uri($"https://{_options.AccountName}.blob.core.windows.net/{_options.FileContainerName}/{name}");
-            return new CloudBlockBlob(uri, credentials);
+            BlobContainerClient containerClient = client.GetBlobContainerClient(_options.FileContainerName);
+            BlobClient blobClient = containerClient.GetBlobClient(name);
+            return blobClient;
         }
     }
 }
