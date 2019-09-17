@@ -13,20 +13,19 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 {
     public class FileService
     {
-        private readonly DbContextFactory _dbContextFactory;
+        private readonly AppDbContext _dbContext;
         private readonly AzureBlobStorageService _blobStorageService;
 
         public FileService(
-            DbContextFactory dbContextFactory,
+            AppDbContext dbContext,
             AzureBlobStorageService blobStorageService)
         {
-            _dbContextFactory = dbContextFactory;
+            _dbContext = dbContext;
             _blobStorageService = blobStorageService;
         }
 
         public async Task UploadFileAsync(IFormFile file, ClaimsPrincipal user)
         {
-            var dbContext = await _dbContextFactory.CreateContextAsync();
             Guid storedBlobId;
             using (var fileStream = file.OpenReadStream())
             {
@@ -43,14 +42,13 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 FileContentType = !string.IsNullOrEmpty(file.ContentType) ? file.ContentType : "application/octet-stream",
                 StoredBlobId = storedBlobId
             };
-            await dbContext.StoredFiles.AddAsync(storedFile);
-            await dbContext.SaveChangesAsync();
+            await _dbContext.StoredFiles.AddAsync(storedFile);
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<(Stream stream, string fileName, string contentType)> DownloadFileAsync(Guid id, ClaimsPrincipal user)
         {
-            var dbContext = await _dbContextFactory.CreateContextAsync();
-            var file = await dbContext.StoredFiles.SingleAsync(f => f.Id == id);
+            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id);
             FileAccessUtils.CheckAccess(file, user);
 
             var stream = await _blobStorageService.DownloadBlobAsync(file.StoredBlobId, user);
@@ -59,8 +57,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
         public async Task<FileModel[]> GetFilesAsync(ClaimsPrincipal user)
         {
-            var dbContext = await _dbContextFactory.CreateContextAsync();
-            var files = dbContext.StoredFiles.ApplyAccessFilter(user);
+            var files = _dbContext.StoredFiles.ApplyAccessFilter(user);
 
             return await files
                 .OrderByDescending(f => f.CreatedAt)
@@ -75,15 +72,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
         public async Task DeleteFileAsync(Guid id, ClaimsPrincipal user)
         {
-            var dbContext = await _dbContextFactory.CreateContextAsync();
-            var file = await dbContext.StoredFiles.SingleAsync(f => f.Id == id);
+            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id);
             FileAccessUtils.CheckAccess(file, user);
 
-            dbContext.StoredFiles.Remove(file);
+            _dbContext.StoredFiles.Remove(file);
 
             await _blobStorageService.DeleteBlobAsync(file.StoredBlobId, user);
 
-            await dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

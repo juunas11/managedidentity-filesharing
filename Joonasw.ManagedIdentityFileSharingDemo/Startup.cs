@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo
@@ -17,10 +18,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
     public class Startup
     {
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment environment)
         {
             _configuration = configuration;
+            _environment = environment;
         }
 
         public void ConfigureServices(IServiceCollection services)
@@ -39,25 +42,27 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
             }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
             services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
 
-            AddAuthentication(services);
+            var authenticationSettings = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
+            AddAuthentication(services, authenticationSettings);
             services.Configure<AuthenticationOptions>(_configuration.GetSection("Authentication"));
             services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
-            services.AddDbContext<AppDbContext>(o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")), ServiceLifetime.Transient);
-            services.AddSingleton<AccessTokenFetcher>();
-            services.AddSingleton<DbContextFactory>();
+            var managedIdentityInterceptor = new ManagedIdentityConnectionInterceptor(
+                new OptionsWrapper<AuthenticationOptions>(authenticationSettings),
+                _environment);
+            services.AddDbContext<AppDbContext>(
+                o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")).AddInterceptors(managedIdentityInterceptor),
+                ServiceLifetime.Transient);
             services.AddSingleton<AzureBlobStorageService>();
-            services.AddSingleton<FileService>();
-            services.AddHttpContextAccessor();
+            services.AddTransient<FileService>();
         }
 
-        private void AddAuthentication(IServiceCollection services)
+        private void AddAuthentication(IServiceCollection services, AuthenticationOptions authenticationSettings)
         {
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddOpenIdConnect(o =>
                 {
-                    var opts = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
-                    o.Authority = opts.Authority;
-                    o.ClientId = opts.ClientId;
+                    o.Authority = authenticationSettings.Authority;
+                    o.ClientId = authenticationSettings.ClientId;
                     o.CallbackPath = "/aad-callback";
                     o.ResponseType = "id_token";
                     o.CorrelationCookie.IsEssential = true;
@@ -77,9 +82,9 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 });
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app)
         {
-            if (env.IsDevelopment())
+            if (_environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
