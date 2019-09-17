@@ -6,10 +6,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo
@@ -33,11 +33,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 options.ConsentCookie.Name = "FileSharing.CookieConsent";
             });
 
-            services.AddMvc(o =>
+            services.AddControllersWithViews(o =>
             {
                 o.Filters.Add<AutoValidateAntiforgeryTokenAttribute>();
-                o.Filters.Add(new AuthorizeFilter());
-            }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
             services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
 
             AddAuthentication(services);
@@ -78,7 +77,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 });
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -94,8 +93,13 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
+            app.UseRouting();
             app.UseAuthentication();
-            app.UseMvc();
+            app.UseAuthorization();
+            app.UseEndpoints(o =>
+            {
+                o.MapControllers().RequireAuthorization();
+            });
         }
     }
 }

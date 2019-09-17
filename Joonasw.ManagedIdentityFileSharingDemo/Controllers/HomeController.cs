@@ -1,5 +1,6 @@
 ﻿using Joonasw.ManagedIdentityFileSharingDemo.Models;
 using Joonasw.ManagedIdentityFileSharingDemo.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using System;
@@ -80,6 +81,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         }
 
         [AcceptVerbs("GET", "HEAD", Route = "/privacy")]
+        [AllowAnonymous]
         public IActionResult Privacy()
         {
             return View();
