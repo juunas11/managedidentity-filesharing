@@ -24,7 +24,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         {
             var model = new IndexModel
             {
-                Files = await _fileService.GetFilesAsync(User)
+                Files = await _fileService.GetFilesAsync(User, HttpContext.RequestAborted)
             };
             return View(model);
         }
@@ -51,11 +51,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
 
             if (!ModelState.IsValid)
             {
-                model.Files = await _fileService.GetFilesAsync(User);
+                // Re-hydrate the Files collection
+                model.Files = await _fileService.GetFilesAsync(User, HttpContext.RequestAborted);
                 return View(nameof(Index), model);
             }
 
-            await _fileService.UploadFileAsync(model.NewFile, User);
+            await _fileService.UploadFileAsync(model.NewFile, User, HttpContext.RequestAborted);
             return RedirectToAction(nameof(Index));
         }
 
@@ -64,7 +65,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         {
             try
             {
-                var (stream, fileName, contentType) = await _fileService.DownloadFileAsync(id, User);
+                var (stream, fileName, contentType) = await _fileService.DownloadFileAsync(id, User, HttpContext.RequestAborted);
                 return File(stream, contentType, fileName);
             }
             catch (AccessDeniedException)
@@ -76,7 +77,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         [HttpPost("/delete")]
         public async Task<IActionResult> Delete(Guid fileToDelete)
         {
-            await _fileService.DeleteFileAsync(fileToDelete, User);
+            await _fileService.DeleteFileAsync(fileToDelete, User, HttpContext.RequestAborted);
             return RedirectToAction(nameof(Index));
         }
 

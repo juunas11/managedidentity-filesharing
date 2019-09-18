@@ -10,6 +10,10 @@ using System.Threading.Tasks;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 {
+    /// <summary>
+    /// Adds an access token from Managed Identity to the DB connection when
+    /// running in Azure.
+    /// </summary>
     public class ManagedIdentityConnectionInterceptor : DbConnectionInterceptor
     {
         private readonly string _tenantId;
@@ -40,19 +44,20 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
             if (useManagedIdentity)
             {
+                // In Azure, get an access token for the connection
                 var sqlConnection = (SqlConnection)connection;
-                string accessToken = await GetAccessTokenAsync();
+                string accessToken = await GetAccessTokenAsync(cancellationToken);
                 sqlConnection.AccessToken = accessToken;
             }
 
             return result;
         }
 
-        private async Task<string> GetAccessTokenAsync()
+        private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
         {
-            // This will return a cached token if one is there and valid
+            // Get access token for Azure SQL DB
             string resource = "https://database.windows.net/";
-            return await _tokenProvider.GetAccessTokenAsync(resource, _tenantId);
+            return await _tokenProvider.GetAccessTokenAsync(resource, _tenantId, cancellationToken);
         }
     }
 }

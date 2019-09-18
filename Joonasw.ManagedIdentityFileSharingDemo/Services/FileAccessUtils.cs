@@ -25,14 +25,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             {
                 if (file.CreatorObjectId != user.GetObjectId())
                 {
-                    throw new AccessDeniedException();
+                    throw new AccessDeniedException($"User object id {user.GetObjectId()} does not match file creator id {file.CreatorObjectId}");
                 }
             }
             else
             {
                 if (file.CreatorTenantId != user.GetTenantId())
                 {
-                    throw new AccessDeniedException();
+                    throw new AccessDeniedException($"User tenant id {user.GetTenantId()} does not match file tenant id {file.CreatorTenantId}");
                 }
             }
         }

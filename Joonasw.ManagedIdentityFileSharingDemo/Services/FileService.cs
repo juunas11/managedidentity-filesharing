@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo.Services
@@ -24,12 +25,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             _blobStorageService = blobStorageService;
         }
 
-        public async Task UploadFileAsync(IFormFile file, ClaimsPrincipal user)
+        public async Task UploadFileAsync(IFormFile file, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
             Guid storedBlobId;
             using (var fileStream = file.OpenReadStream())
             {
-                storedBlobId = await _blobStorageService.UploadBlobAsync(fileStream, user);
+                storedBlobId = await _blobStorageService.UploadBlobAsync(fileStream, user, cancellationToken);
             }
 
             var storedFile = new StoredFile
@@ -42,20 +43,21 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 FileContentType = !string.IsNullOrEmpty(file.ContentType) ? file.ContentType : "application/octet-stream",
                 StoredBlobId = storedBlobId
             };
-            await _dbContext.StoredFiles.AddAsync(storedFile);
-            await _dbContext.SaveChangesAsync();
+            _dbContext.StoredFiles.Add(storedFile);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<(Stream stream, string fileName, string contentType)> DownloadFileAsync(Guid id, ClaimsPrincipal user)
+        public async Task<(Stream stream, string fileName, string contentType)> DownloadFileAsync(
+            Guid id, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
-            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id);
+            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id, cancellationToken);
             FileAccessUtils.CheckAccess(file, user);
 
-            var stream = await _blobStorageService.DownloadBlobAsync(file.StoredBlobId, user);
+            var stream = await _blobStorageService.DownloadBlobAsync(file.StoredBlobId, user, cancellationToken);
             return (stream, file.FileName, file.FileContentType);
         }
 
-        public async Task<FileModel[]> GetFilesAsync(ClaimsPrincipal user)
+        public async Task<FileModel[]> GetFilesAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
         {
             var files = _dbContext.StoredFiles.ApplyAccessFilter(user);
 
@@ -67,16 +69,17 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                     Name = f.FileName,
                     CreatedAt = f.CreatedAt
                 })
-                .ToArrayAsync();
+                .ToArrayAsync(cancellationToken);
         }
 
-        public async Task DeleteFileAsync(Guid id, ClaimsPrincipal user)
+        public async Task DeleteFileAsync(Guid id, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
-            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id);
+            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id, cancellationToken);
             FileAccessUtils.CheckAccess(file, user);
 
             _dbContext.StoredFiles.Remove(file);
 
+            // These two operations cannot be canceled, so no cancellation token
             await _blobStorageService.DeleteBlobAsync(file.StoredBlobId, user);
 
             await _dbContext.SaveChangesAsync();

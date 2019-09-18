@@ -8,8 +8,13 @@ Organizational account users can see files uploaded by anyone in their organizat
 
 ## Setup instructions
 
-You'll need to have the .NET Core 2.2 SDK installed.
+You'll need to have the .NET Core 3.0 SDK installed.
 You can use any editor with the project, though I used Visual Studio 2019.
+
+At the time of writing .NET Core 3.0 is in preview.
+If you use VS 2019 Stable (not Preview), you need to enable usage of Preview versions of .NET Core
+via *Tools -> Options -> Environment -> Preview features -> Use previews of the .NET Core SDK*.
+Once .NET Core 3.0 is released, Stable VS 2019 will be able to use the 3.0 SDK without the setting.
 
 To enable sign-ins, you need to register an app in your Azure AD tenant.
 If you want to allow any account to sign in as originally intended,
@@ -36,6 +41,10 @@ You can also run `dotnet ef` commands to migrate your database/generate the scri
 
 You should be able to run the app locally now.
 
+Note that you may get an error saying the Storage Emulator does not support
+the API version we are using.
+In that case, you will need to update the Storage Emulator.
+
 ### Azure setup
 
 There's no ARM template yet, it's on the todo list.
@@ -61,3 +70,5 @@ So you'll have to create the Azure resources manually:
 1. Modify and run SetupScripts/CreateSqlUser.sql (change the user name to your App Service name)
 
 Deploy the app to the App Service and all should work.
+At the time of writing, .NET Core 3.0 is not available in App Service.
+Currently it must be deployed as a self-contained app.

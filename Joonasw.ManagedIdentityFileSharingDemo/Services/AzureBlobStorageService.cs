@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.IO;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo.Services
@@ -26,12 +27,13 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         /// </summary>
         /// <param name="content">File content</param>
         /// <param name="user">Current user</param>
+        /// <param name="cancellationToken">Token to notify cancellation of the process</param>
         /// <returns>Generated blob id</returns>
-        public async Task<Guid> UploadBlobAsync(Stream content, ClaimsPrincipal user)
+        public async Task<Guid> UploadBlobAsync(Stream content, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
             var blobId = Guid.NewGuid();
             BlobClient client = GetBlobClient(blobId, user);
-            await client.UploadAsync(content);
+            await client.UploadAsync(content, cancellationToken);
             return blobId;
         }
 
@@ -40,11 +42,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         /// </summary>
         /// <param name="blobId">Id of stored blob returned by <see cref="UploadBlobAsync(Stream, ClaimsPrincipal)"/></param>
         /// <param name="user">Current user</param>
+        /// <param name="cancellationToken">Token to notify cancellation of the process</param>
         /// <returns>Open stream to the blob in Storage</returns>
-        public async Task<Stream> DownloadBlobAsync(Guid blobId, ClaimsPrincipal user)
+        public async Task<Stream> DownloadBlobAsync(Guid blobId, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
             BlobClient client = GetBlobClient(blobId, user);
-            Response<BlobDownloadInfo> res = await client.DownloadAsync();
+            Response<BlobDownloadInfo> res = await client.DownloadAsync(cancellationToken);
             return res.Value.Content;
         }
 
