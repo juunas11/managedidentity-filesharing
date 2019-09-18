@@ -4,7 +4,6 @@ using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,10 +17,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         private readonly AzureServiceTokenProvider _tokenProvider;
 
         public ManagedIdentityConnectionInterceptor(
-            IOptions<AuthenticationOptions> options,
+            AuthenticationOptions authenticationOptions,
             IWebHostEnvironment environment)
         {
-            _tenantId = options.Value.ManagedIdentityTenantId;
+            _tenantId = authenticationOptions.ManagedIdentityTenantId;
             if (string.IsNullOrEmpty(_tenantId))
             {
                 _tenantId = null;

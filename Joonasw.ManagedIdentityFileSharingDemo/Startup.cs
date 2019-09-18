@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo
@@ -28,6 +27,22 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
 
         public void ConfigureServices(IServiceCollection services)
         {
+            AddMvc(services);
+
+            services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
+
+            var authenticationSettings = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
+            AddAuthentication(services, authenticationSettings);
+
+            AddDatabase(services, authenticationSettings);
+            AddStorage(services);
+
+            services.AddTransient<FileService>();
+        }
+
+        private static void AddMvc(IServiceCollection services)
+        {
+            // Cookie consent
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -36,28 +51,17 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 options.ConsentCookie.Name = "FileSharing.CookieConsent";
             });
 
+            // Core MVC services
             services.AddControllersWithViews(o =>
             {
                 o.Filters.Add<AutoValidateAntiforgeryTokenAttribute>();
             }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
-            services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
-
-            var authenticationSettings = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
-            AddAuthentication(services, authenticationSettings);
-            services.Configure<AuthenticationOptions>(_configuration.GetSection("Authentication"));
-            services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
-            var managedIdentityInterceptor = new ManagedIdentityConnectionInterceptor(
-                new OptionsWrapper<AuthenticationOptions>(authenticationSettings),
-                _environment);
-            services.AddDbContext<AppDbContext>(
-                o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")).AddInterceptors(managedIdentityInterceptor),
-                ServiceLifetime.Transient);
-            services.AddSingleton<AzureBlobStorageService>();
-            services.AddTransient<FileService>();
         }
 
         private void AddAuthentication(IServiceCollection services, AuthenticationOptions authenticationSettings)
         {
+            // OpenID Connect authentication used to authenticate user
+            // Cookie used to keep the authentication session on our side
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddOpenIdConnect(o =>
                 {
@@ -80,6 +84,23 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                     o.LoginPath = "/Account/Login";
                     o.AccessDeniedPath = "/Account/AccessDenied";
                 });
+        }
+
+        private void AddDatabase(IServiceCollection services, AuthenticationOptions authenticationSettings)
+        {
+            // Setup the interceptor that will add access tokens to database connections in Azure
+            var managedIdentityInterceptor = new ManagedIdentityConnectionInterceptor(
+                authenticationSettings,
+                _environment);
+            services.AddDbContext<AppDbContext>(
+                o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")).AddInterceptors(managedIdentityInterceptor),
+                ServiceLifetime.Transient);
+        }
+
+        private void AddStorage(IServiceCollection services)
+        {
+            services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
+            services.AddSingleton<AzureBlobStorageService>();
         }
 
         public void Configure(IApplicationBuilder app)
