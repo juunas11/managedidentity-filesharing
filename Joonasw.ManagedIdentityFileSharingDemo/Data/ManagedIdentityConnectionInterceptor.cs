@@ -8,7 +8,7 @@ using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Joonasw.ManagedIdentityFileSharingDemo.Services
+namespace Joonasw.ManagedIdentityFileSharingDemo.Data
 {
     /// <summary>
     /// Adds an access token from Managed Identity to the DB connection when
