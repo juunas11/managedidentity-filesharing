@@ -14,6 +14,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 {
     public class FileService
     {
+        private const long MaxBytesPerUserOrOrg = 50 * 1024 * 1024; // 50 MB per user/organization
         private readonly AppDbContext _dbContext;
         private readonly AzureBlobStorageService _blobStorageService;
 
@@ -27,6 +28,9 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
         public async Task UploadFileAsync(IFormFile file, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
+            long fileSizeInBytes = file.Length;
+            await CheckAvailableSpaceAsync(fileSizeInBytes, user, cancellationToken);
+
             Guid storedBlobId;
             using (var fileStream = file.OpenReadStream())
             {
@@ -41,10 +45,21 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
                 CreatorTenantId = user.GetTenantId(),
                 FileName = file.FileName,
                 FileContentType = !string.IsNullOrEmpty(file.ContentType) ? file.ContentType : "application/octet-stream",
-                StoredBlobId = storedBlobId
+                StoredBlobId = storedBlobId,
+                SizeInBytes = fileSizeInBytes
             };
             _dbContext.StoredFiles.Add(storedFile);
             await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        private async Task CheckAvailableSpaceAsync(long fileSizeInBytes, ClaimsPrincipal user, CancellationToken cancellationToken)
+        {
+            long storedBytes = await _dbContext.StoredFiles.ApplyAccessFilter(user).SumAsync(f => f.SizeInBytes, cancellationToken);
+            if ((storedBytes + fileSizeInBytes) > MaxBytesPerUserOrOrg)
+            {
+                var maxMegaBytes = MaxBytesPerUserOrOrg / 1024 / 1024;
+                throw new SpaceUnavailableException($"Sorry, max {maxMegaBytes} MB can be stored, delete files before uploading more");
+            }
         }
 
         public async Task<(Stream stream, string fileName, string contentType)> DownloadFileAsync(

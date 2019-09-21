@@ -49,15 +49,22 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
                 }
             }
 
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                // Re-hydrate the Files collection
-                model.Files = await _fileService.GetFilesAsync(User, HttpContext.RequestAborted);
-                return View(nameof(Index), model);
+                try
+                {
+                    await _fileService.UploadFileAsync(model.NewFile, User, HttpContext.RequestAborted);
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (SpaceUnavailableException e)
+                {
+                    ModelState.AddModelError(nameof(IndexModel.NewFile), e.Message);
+                }
             }
 
-            await _fileService.UploadFileAsync(model.NewFile, User, HttpContext.RequestAborted);
-            return RedirectToAction(nameof(Index));
+            // Re-hydrate the Files collection
+            model.Files = await _fileService.GetFilesAsync(User, HttpContext.RequestAborted);
+            return View(nameof(Index), model);
         }
 
         [AcceptVerbs("GET", "HEAD", Route = "/download/{id}")]

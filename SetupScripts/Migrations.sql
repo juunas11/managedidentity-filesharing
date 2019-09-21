@@ -28,7 +28,7 @@ GO
 IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20190901065517_Initial')
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20190901065517_Initial', N'2.2.6-servicing-10079');
+    VALUES (N'20190901065517_Initial', N'3.0.0-rc1.19456.14');
 END;
 
 GO
@@ -49,7 +49,7 @@ GO
 IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20190901150912_RemoveDescription')
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20190901150912_RemoveDescription', N'2.2.6-servicing-10079');
+    VALUES (N'20190901150912_RemoveDescription', N'3.0.0-rc1.19456.14');
 END;
 
 GO
@@ -64,7 +64,22 @@ GO
 IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20190901152612_AddFileContentType')
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20190901152612_AddFileContentType', N'2.2.6-servicing-10079');
+    VALUES (N'20190901152612_AddFileContentType', N'3.0.0-rc1.19456.14');
+END;
+
+GO
+
+IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20190921133605_AddFileSize')
+BEGIN
+    ALTER TABLE [StoredFiles] ADD [SizeInBytes] bigint NOT NULL DEFAULT CAST(0 AS bigint);
+END;
+
+GO
+
+IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20190921133605_AddFileSize')
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20190921133605_AddFileSize', N'3.0.0-rc1.19456.14');
 END;
 
 GO
