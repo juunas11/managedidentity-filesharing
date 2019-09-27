@@ -10,11 +10,11 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         {
         }
 
-        public SpaceUnavailableException(string? message) : base(message)
+        public SpaceUnavailableException(string message) : base(message)
         {
         }
 
-        public SpaceUnavailableException(string? message, Exception? innerException) : base(message, innerException)
+        public SpaceUnavailableException(string message, Exception innerException) : base(message, innerException)
         {
         }
 

@@ -32,7 +32,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             await CheckAvailableSpaceAsync(fileSizeInBytes, user, cancellationToken);
 
             Guid storedBlobId;
-            using (var fileStream = file.OpenReadStream())
+            using (Stream fileStream = file.OpenReadStream())
             {
                 storedBlobId = await _blobStorageService.UploadBlobAsync(fileStream, user, cancellationToken);
             }
@@ -57,7 +57,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             long storedBytes = await _dbContext.StoredFiles.ApplyAccessFilter(user).SumAsync(f => f.SizeInBytes, cancellationToken);
             if ((storedBytes + fileSizeInBytes) > MaxBytesPerUserOrOrg)
             {
-                var maxMegaBytes = MaxBytesPerUserOrOrg / 1024 / 1024;
+                long maxMegaBytes = MaxBytesPerUserOrOrg / 1024 / 1024;
                 throw new SpaceUnavailableException($"Sorry, max {maxMegaBytes} MB can be stored, delete files before uploading more");
             }
         }
@@ -65,10 +65,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         public async Task<(Stream stream, string fileName, string contentType)> DownloadFileAsync(
             Guid id, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
-            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id, cancellationToken);
+            StoredFile file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id, cancellationToken);
             FileAccessUtils.CheckAccess(file, user);
 
-            var stream = await _blobStorageService.DownloadBlobAsync(file.StoredBlobId, user, cancellationToken);
+            Stream stream = await _blobStorageService.DownloadBlobAsync(file.StoredBlobId, user, cancellationToken);
             return (stream, file.FileName, file.FileContentType);
         }
 
@@ -89,7 +89,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
         public async Task DeleteFileAsync(Guid id, ClaimsPrincipal user, CancellationToken cancellationToken)
         {
-            var file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id, cancellationToken);
+            StoredFile file = await _dbContext.StoredFiles.SingleAsync(f => f.Id == id, cancellationToken);
             FileAccessUtils.CheckAccess(file, user);
 
             _dbContext.StoredFiles.Remove(file);
