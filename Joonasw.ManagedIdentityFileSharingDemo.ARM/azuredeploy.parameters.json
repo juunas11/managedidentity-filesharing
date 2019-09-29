@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appInsightsName": {
+      "value": ""
+    },
+    "sqlServerName": {
+      "value": ""
+    },
+    "sqlDatabaseName": {
+      "value": ""
+    },
+    "sqlAdminUsername": {
+      "value": ""
+    },
+    "sqlAadAdminUsername": {
+      "value": ""
+    },
+    "sqlAadAdminObjectId": {
+      "value": ""
+    },
+    "appServicePlanName": {
+      "value": ""
+    },
+    "appServicePlanTier": {
+      "value": "D1"
+    },
+    "webAppName": {
+      "value": ""
+    },
+    "storageAccountName": {
+      "value": ""
+    },
+    "storageContainerName": {
+      "value": "files"
+    },
+    "aadAppClientId": {
+      "value": ""
+    }
+  }
+}
