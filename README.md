@@ -11,11 +11,6 @@ Organizational account users can see files uploaded by anyone in their organizat
 You'll need to have the .NET Core 3.0 SDK installed.
 You can use any editor with the project, though I used Visual Studio 2019.
 
-At the time of writing .NET Core 3.0 is in preview.
-If you use VS 2019 Stable (not Preview), you need to enable usage of Preview versions of .NET Core
-via *Tools -> Options -> Environment -> Preview features -> Use previews of the .NET Core SDK*.
-Once .NET Core 3.0 is released, Stable VS 2019 will be able to use the 3.0 SDK without the setting.
-
 To enable sign-ins, you need to register an app in your Azure AD tenant.
 If you want to allow any account to sign in as originally intended,
 make sure to select the following option when creating the app registration:
@@ -47,27 +42,28 @@ In that case, you will need to update the Storage Emulator.
 
 ### Azure setup
 
-There's no ARM template yet, it's on the todo list.
-So you'll have to create the Azure resources manually:
+Deploy the ARM template located in the Joonasw.ManagedIdentityFileSharingDemo.ARM project.
+There is a parameter file that you can use,
+but you can also specify all the parameters at deployment time.
 
-- App Service
-- SQL Database
-- Storage account
+Note you will have to know the Azure AD user who will be the "Active Directory admin" for the SQL server.
+You will need the user's username and object id (within the tenant linked to the subscription).
 
-1. Enable a System-assigned Managed Identity on the App Service
-1. Assign connection string "DefaultConnection" to the App Service with Azure SQL type e.g. `Server=tcp:servernamehere.database.windows.net,1433;Initial Catalog=DatabaseNameHere;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;`
-1. Assign app settings to the App Service:
-   - Authentication__ClientId: your Azure AD application id / client id
-   - Storage__AccountName: your Storage account name
-   - Storage__FileContainerName: files (or another name if you made it with another name)
-   - HTTPS_PORT: 443
-1. Create the Storage container "files"
-1. Assign the "Storage Blob Data Contributor" role to the App Service's identity on the created container
-   - You can do this via the Portal or by running SetupScripts/Assign-Permissions.ps1 (set your own values in the script first though)
-1. Enable AAD admin on the SQL server
-1. Connect to the SQL server using the AAD admin
-1. Run the SetupScripts/Migrations.sql on the database to create tables
-1. Modify and run SetupScripts/CreateSqlUser.sql (change the user name to your App Service name)
+After successfully deploying the ARM template, you can setup the Azure SQL database with
+a script included in the SetupScripts folder.
+In order to run the script,
+*add your current client IP address to the SQL server firewall*.
+
+Open PowerShell in the SetupScripts folder and run (replace values with yours):
+
+```
+.\Setup-AzureDb.ps1 -serverName 'azure-sql-server-name.database.windows.net' -databaseName 'azure-db-name' -username 'aad-admin-username' -webAppName 'web-app-name'
+```
+
+The script will execute pre-generated EF Core migrations and
+allow access to the Managed Identity.
+It will pop a login twice for your user,
+one for the migrations file and one for the inline query to enable access.
 
 Deploy the app to the App Service and all should work.
 At the time of writing, .NET Core 3.0 is not available in App Service.

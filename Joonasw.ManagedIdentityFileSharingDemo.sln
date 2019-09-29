@@ -7,9 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Joonasw.ManagedIdentityFile
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SetupScripts", "SetupScripts", "{77D25071-A9C7-46DD-8CA6-721F4104A3FE}"
 	ProjectSection(SolutionItems) = preProject
-		SetupScripts\Assign-Permissions.ps1 = SetupScripts\Assign-Permissions.ps1
-		SetupScripts\CreateSqlUser.sql = SetupScripts\CreateSqlUser.sql
 		SetupScripts\Migrations.sql = SetupScripts\Migrations.sql
+		SetupScripts\Setup-AzureDb.ps1 = SetupScripts\Setup-AzureDb.ps1
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E0CBA4DC-726C-48F0-A4F0-EC0DE1BA6DE4}"
