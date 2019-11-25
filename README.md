@@ -64,7 +64,3 @@ The script will execute pre-generated EF Core migrations and
 allow access to the Managed Identity.
 It will pop a login twice for your user,
 one for the migrations file and one for the inline query to enable access.
-
-Deploy the app to the App Service and all should work.
-At the time of writing, .NET Core 3.0 is not available in App Service.
-Currently it must be deployed as a self-contained app.
