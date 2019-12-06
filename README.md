@@ -8,7 +8,7 @@ Organizational account users can see files uploaded by anyone in their organizat
 
 ## Setup instructions
 
-You'll need to have the .NET Core 3.0 SDK installed.
+You'll need to have the .NET Core 3.1 SDK installed.
 You can use any editor with the project, though I used Visual Studio 2019.
 
 To enable sign-ins, you need to register an app in your Azure AD tenant.
