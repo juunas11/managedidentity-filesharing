@@ -1,5 +1,4 @@
 ﻿using Azure;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Joonasw.ManagedIdentityFileSharingDemo.Options;
@@ -15,11 +14,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
     public class AzureBlobStorageService
     {
         private readonly StorageOptions _options;
+        private readonly BlobServiceClient _blobServiceClient;
 
         public AzureBlobStorageService(
-            IOptions<StorageOptions> options)
+            IOptions<StorageOptions> options,
+            BlobServiceClient blobServiceClient)
         {
             _options = options.Value;
+            _blobServiceClient = blobServiceClient;
         }
 
         /// <summary>
@@ -68,21 +70,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             // Personal accounts -> user id, organizational accounts -> tenant id
             string name = $"{FileAccessUtils.GetBlobFolder(user)}/{blobId}";
 
-            BlobServiceClient client;
-
-            if (_options.UseEmulator)
-            {
-                // Locally we use Storage Emulator
-                client = new BlobServiceClient("UseDevelopmentStorage=true");
-            }
-            else
-            {
-                client = new BlobServiceClient(
-                    new Uri($"https://{_options.AccountName}.blob.core.windows.net"),
-                    new ManagedIdentityCredential());
-            }
-
-            BlobContainerClient containerClient = client.GetBlobContainerClient(_options.FileContainerName);
+            BlobContainerClient containerClient = _blobServiceClient.GetBlobContainerClient(_options.FileContainerName);
             BlobClient blobClient = containerClient.GetBlobClient(name);
             return blobClient;
         }

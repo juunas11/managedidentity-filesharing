@@ -1,4 +1,5 @@
-﻿using Joonasw.ManagedIdentityFileSharingDemo.Data;
+﻿using Azure.Identity;
+using Joonasw.ManagedIdentityFileSharingDemo.Data;
 using Joonasw.ManagedIdentityFileSharingDemo.Options;
 using Joonasw.ManagedIdentityFileSharingDemo.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -7,10 +8,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using System;
 
 namespace Joonasw.ManagedIdentityFileSharingDemo
 {
@@ -100,7 +103,21 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
         private void AddStorage(IServiceCollection services)
         {
             services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
+            var options = _configuration.GetSection("Storage").Get<StorageOptions>();
             services.AddSingleton<AzureBlobStorageService>();
+
+            services.AddAzureClients(builder =>
+            {
+                if (options.UseEmulator)
+                {
+                    builder.AddBlobServiceClient("UseDevelopmentStorage=true");
+                }
+                else
+                {
+                    builder.AddBlobServiceClient(new Uri($"https://{options.AccountName}.blob.core.windows.net"))
+                        .WithCredential(new DefaultAzureCredential());
+                }
+            });
         }
 
         public void Configure(IApplicationBuilder app)
