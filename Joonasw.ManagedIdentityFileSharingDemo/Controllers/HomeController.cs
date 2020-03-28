@@ -84,8 +84,15 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
         [HttpPost("/delete")]
         public async Task<IActionResult> Delete(Guid fileToDelete)
         {
-            await _fileService.DeleteFileAsync(fileToDelete, User, HttpContext.RequestAborted);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await _fileService.DeleteFileAsync(fileToDelete, User, HttpContext.RequestAborted);
+                return RedirectToAction(nameof(Index));
+            }
+            catch (AccessDeniedException)
+            {
+                return Forbid();
+            }
         }
 
         [AcceptVerbs("GET", "HEAD", Route = "/privacy")]

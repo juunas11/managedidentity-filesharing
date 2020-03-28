@@ -39,8 +39,8 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
 
         internal static string GetBlobFolder(ClaimsPrincipal user)
         {
-            // If user is personal MSA, folder is msa-{user-id}
-            // If user is not personal, folder is org-{tenant-id}
+            // If a user uses a personal account, folder is msa-{user-id}
+            // If a user uses an organizational AAD account, folder is org-{tenant-id}
             return user.IsPersonalAccount()
                 ? $"msa-{user.GetObjectId()}"
                 : $"org-{user.GetTenantId()}";
