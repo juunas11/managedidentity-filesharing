@@ -1,6 +1,5 @@
-﻿using Joonasw.ManagedIdentityFileSharingDemo.Options;
+﻿using Azure.Core;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
@@ -16,22 +15,15 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Data
     /// </summary>
     public class ManagedIdentityConnectionInterceptor : DbConnectionInterceptor
     {
-        private readonly string _tenantId;
         private readonly IWebHostEnvironment _environment;
-        private readonly AzureServiceTokenProvider _tokenProvider;
+        private readonly TokenCredential _tokenCredential;
 
         public ManagedIdentityConnectionInterceptor(
-            AuthenticationOptions authenticationOptions,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            TokenCredential tokenCredential)
         {
-            _tenantId = authenticationOptions.ManagedIdentityTenantId;
-            if (string.IsNullOrEmpty(_tenantId))
-            {
-                _tenantId = null;
-            }
-
             _environment = environment;
-            _tokenProvider = new AzureServiceTokenProvider();
+            _tokenCredential = tokenCredential;
         }
 
         public override async Task<InterceptionResult> ConnectionOpeningAsync(
@@ -56,8 +48,9 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Data
         private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
         {
             // Get access token for Azure SQL DB
-            string resource = "https://database.windows.net/";
-            return await _tokenProvider.GetAccessTokenAsync(resource, _tenantId, cancellationToken);
+            string scope = "https://database.windows.net/.default";
+            var token = await _tokenCredential.GetTokenAsync(new TokenRequestContext(new[] { scope }), cancellationToken);
+            return token.Token;
         }
     }
 }

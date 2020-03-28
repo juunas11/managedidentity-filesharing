@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
+using Azure.Identity;
 using Joonasw.ManagedIdentityFileSharingDemo.Data;
 using Joonasw.ManagedIdentityFileSharingDemo.Options;
 using Joonasw.ManagedIdentityFileSharingDemo.Services;
@@ -34,11 +35,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
 
             services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
 
-            var authenticationSettings = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
-            AddAuthentication(services, authenticationSettings);
+            AddAuthentication(services);
 
-            AddDatabase(services, authenticationSettings);
-            AddStorage(services);
+            // Use DefaultAzureCredential to authenticate with Azure Storage and SQL DB
+            var tokenCredential = new DefaultAzureCredential();
+            AddDatabase(services, tokenCredential);
+            AddStorage(services, tokenCredential);
 
             services.AddTransient<FileService>();
         }
@@ -58,11 +60,12 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
             services.AddControllersWithViews(o =>
             {
                 o.Filters.Add<AutoValidateAntiforgeryTokenAttribute>();
-            }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+            });
         }
 
-        private void AddAuthentication(IServiceCollection services, AuthenticationOptions authenticationSettings)
+        private void AddAuthentication(IServiceCollection services)
         {
+            var authenticationSettings = _configuration.GetSection("Authentication").Get<AuthenticationOptions>();
             // OpenID Connect authentication used to authenticate user
             // Cookie used to keep the authentication session on our side
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -89,18 +92,18 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 });
         }
 
-        private void AddDatabase(IServiceCollection services, AuthenticationOptions authenticationSettings)
+        private void AddDatabase(IServiceCollection services, TokenCredential tokenCredential)
         {
             // Setup the interceptor that will add access tokens to database connections in Azure
             var managedIdentityInterceptor = new ManagedIdentityConnectionInterceptor(
-                authenticationSettings,
-                _environment);
+                _environment,
+                tokenCredential);
             services.AddDbContext<AppDbContext>(
                 o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")).AddInterceptors(managedIdentityInterceptor),
                 ServiceLifetime.Transient);
         }
 
-        private void AddStorage(IServiceCollection services)
+        private void AddStorage(IServiceCollection services, TokenCredential tokenCredential)
         {
             services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
             var options = _configuration.GetSection("Storage").Get<StorageOptions>();
@@ -108,14 +111,15 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
 
             services.AddAzureClients(builder =>
             {
+                builder.UseCredential(tokenCredential);
+
                 if (options.UseEmulator)
                 {
                     builder.AddBlobServiceClient("UseDevelopmentStorage=true");
                 }
                 else
                 {
-                    builder.AddBlobServiceClient(new Uri($"https://{options.AccountName}.blob.core.windows.net"))
-                        .WithCredential(new DefaultAzureCredential());
+                    builder.AddBlobServiceClient(new Uri($"https://{options.AccountName}.blob.core.windows.net"));
                 }
             });
         }
