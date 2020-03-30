@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Hosting;
+using System;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,8 +16,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Data
     /// </summary>
     public class ManagedIdentityConnectionInterceptor : DbConnectionInterceptor
     {
+        private static readonly TimeSpan RefreshTokenBeforeExpiry = TimeSpan.FromMinutes(10);
         private readonly IWebHostEnvironment _environment;
         private readonly TokenCredential _tokenCredential;
+        private AccessToken _cachedToken;
 
         public ManagedIdentityConnectionInterceptor(
             IWebHostEnvironment environment,
@@ -45,12 +48,23 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Data
             return result;
         }
 
-        private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
+        private async ValueTask<string> GetAccessTokenAsync(CancellationToken cancellationToken)
         {
+            if (CachedTokenValid())
+            {
+                return _cachedToken.Token;
+            }
+
             // Get access token for Azure SQL DB
             string scope = "https://database.windows.net/.default";
             var token = await _tokenCredential.GetTokenAsync(new TokenRequestContext(new[] { scope }), cancellationToken);
+            _cachedToken = token;
             return token.Token;
+        }
+
+        private bool CachedTokenValid()
+        {
+            return DateTimeOffset.UtcNow + RefreshTokenBeforeExpiry < _cachedToken.ExpiresOn;
         }
     }
 }
