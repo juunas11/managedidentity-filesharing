@@ -95,6 +95,13 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Controllers
             }
         }
 
+        [HttpGet("/search")]
+        public async Task<IActionResult> Search([FromQuery] string query = "")
+        {
+            var model = await _fileService.SearchFilesAsync(query, User, HttpContext.RequestAborted);
+            return View(model);
+        }
+
         [AcceptVerbs("GET", "HEAD", Route = "/privacy")]
         [AllowAnonymous]
         public IActionResult Privacy()

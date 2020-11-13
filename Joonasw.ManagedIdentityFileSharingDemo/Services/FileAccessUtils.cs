@@ -1,4 +1,5 @@
-﻿using Joonasw.ManagedIdentityFileSharingDemo.Data;
+﻿using Azure.Search.Documents;
+using Joonasw.ManagedIdentityFileSharingDemo.Data;
 using Joonasw.ManagedIdentityFileSharingDemo.Extensions;
 using System.Linq;
 using System.Security.Claims;
@@ -17,6 +18,16 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             }
 
             return files.Where(f => f.CreatorTenantId == user.GetTenantId());
+        }
+
+        internal static string CreateSearchFilter(ClaimsPrincipal user)
+        {
+            if (user.IsPersonalAccount())
+            {
+                return SearchFilter.Create($"userObjectId eq {user.GetObjectId()}");
+            }
+
+            return SearchFilter.Create($"userTenantId eq {user.GetTenantId()}");
         }
 
         internal static void CheckAccess(StoredFile file, ClaimsPrincipal user)

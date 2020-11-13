@@ -1,0 +1,32 @@
+﻿@model SearchModel
+@{
+    ViewData["Title"] = "Search";
+}
+
+<form asp-action="Search" asp-controller="Home" method="get">
+    <div class="form-group">
+        <label for="query">Search text</label>
+        <input type="text" id="query" name="query" value="@Model.Query" class="form-control" />
+    </div>
+    <button class="btn btn-primary">Search</button>
+</form>
+
+<hr />
+
+<h2>Results</h2>
+@if (Model.Results.Count == 0)
+{
+    <p>No results.</p>
+}
+else
+{
+    foreach (var result in Model.Results)
+    {
+        <div class="card">
+            <div class="card-body">
+                <p class="card-text">@result.Filename</p>
+                <a class="card-link" asp-controller="Home" asp-action="Download" asp-route-id="@result.Id">Download</a>
+            </div>
+        </div>
+    }
+}

@@ -1,4 +1,5 @@
-﻿using Azure.Core;
+﻿using Azure;
+using Azure.Core;
 using Azure.Identity;
 using Joonasw.ManagedIdentityFileSharingDemo.Data;
 using Joonasw.ManagedIdentityFileSharingDemo.Options;
@@ -40,7 +41,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
             // Use DefaultAzureCredential to authenticate with Azure Storage and SQL DB
             var tokenCredential = new DefaultAzureCredential();
             AddDatabase(services, tokenCredential);
-            AddStorage(services, tokenCredential);
+            AddStorageAndSearch(services, tokenCredential);
 
             services.AddTransient<FileService>();
         }
@@ -99,27 +100,44 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
                 _environment,
                 tokenCredential);
             services.AddDbContext<AppDbContext>(
-                o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")).AddInterceptors(managedIdentityInterceptor),
+                o => o.UseSqlServer(
+                        _configuration.GetConnectionString("DefaultConnection"),
+                        sql => sql.EnableRetryOnFailure())
+                      .AddInterceptors(managedIdentityInterceptor),
                 ServiceLifetime.Transient);
         }
 
-        private void AddStorage(IServiceCollection services, TokenCredential tokenCredential)
+        private void AddStorageAndSearch(IServiceCollection services, TokenCredential tokenCredential)
         {
             services.Configure<StorageOptions>(_configuration.GetSection("Storage"));
-            var options = _configuration.GetSection("Storage").Get<StorageOptions>();
+            var storageOptions = _configuration.GetSection("Storage").Get<StorageOptions>();
             services.AddSingleton<AzureBlobStorageService>();
+
+            services.Configure<SearchOptions>(_configuration.GetSection("Search"));
+            var searchOptions = _configuration.GetSection("Search").Get<SearchOptions>();
 
             services.AddAzureClients(builder =>
             {
                 builder.UseCredential(tokenCredential);
 
-                if (options.UseEmulator)
+                if (storageOptions.UseEmulator)
                 {
                     builder.AddBlobServiceClient("UseDevelopmentStorage=true");
                 }
                 else
                 {
-                    builder.AddBlobServiceClient(new Uri($"https://{options.AccountName}.blob.core.windows.net"));
+                    builder.AddBlobServiceClient(new Uri($"https://{storageOptions.AccountName}.blob.core.windows.net"));
+                }
+
+                if (!string.IsNullOrEmpty(searchOptions?.ServiceUri))
+                {
+                    builder.AddSearchClient(
+                        new Uri(searchOptions.ServiceUri),
+                        searchOptions.IndexName,
+                        new AzureKeyCredential(searchOptions.QueryKey));
+                    builder.AddSearchIndexClient(
+                        new Uri(searchOptions.ServiceUri),
+                        new AzureKeyCredential(searchOptions.AdminKey));
                 }
             });
         }

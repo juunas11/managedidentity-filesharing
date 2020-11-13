@@ -1,9 +1,11 @@
-﻿using Joonasw.ManagedIdentityFileSharingDemo.Data;
+﻿using Azure.Search.Documents;
+using Joonasw.ManagedIdentityFileSharingDemo.Data;
 using Joonasw.ManagedIdentityFileSharingDemo.Extensions;
 using Joonasw.ManagedIdentityFileSharingDemo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -17,13 +19,16 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         private const long MaxBytesPerUserOrOrg = 50 * 1024 * 1024; // 50 MB per user/organization
         private readonly AppDbContext _dbContext;
         private readonly AzureBlobStorageService _blobStorageService;
+        private readonly SearchClient _searchClient;
 
         public FileService(
             AppDbContext dbContext,
-            AzureBlobStorageService blobStorageService)
+            AzureBlobStorageService blobStorageService,
+            SearchClient searchClient)
         {
             _dbContext = dbContext;
             _blobStorageService = blobStorageService;
+            _searchClient = searchClient;
         }
 
         public async Task UploadFileAsync(IFormFile file, ClaimsPrincipal user, CancellationToken cancellationToken)
@@ -98,6 +103,51 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
             await _blobStorageService.DeleteBlobAsync(file.StoredBlobId, user);
 
             await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<SearchModel> SearchFilesAsync(string query, ClaimsPrincipal user, CancellationToken cancellationToken)
+        {
+            var searchOptions = new SearchOptions
+            {
+                Filter = FileAccessUtils.CreateSearchFilter(user),
+            };
+            searchOptions.Select.Add("metadata_storage_name");
+
+            var results = await _searchClient.SearchAsync<FileSearchDocument>(
+                query,
+                searchOptions,
+                cancellationToken);
+            var model = new SearchModel
+            {
+                Query = query,
+                Results = new List<FileSearchResult>()
+            };
+            var blobIds = new List<Guid>();
+            await foreach (var result in results.Value.GetResultsAsync().WithCancellation(cancellationToken))
+            {
+                blobIds.Add(result.Document.BlobId);
+            }
+
+            var files = _dbContext.StoredFiles.ApplyAccessFilter(user);
+            var filesByBlobId = await files
+                .Where(f => blobIds.Contains(f.StoredBlobId))
+                .ToDictionaryAsync(f => f.StoredBlobId, cancellationToken);
+
+            for (int i = 0; i < blobIds.Count; i++)
+            {
+                var blobId = blobIds[i];
+
+                if (filesByBlobId.TryGetValue(blobId, out var file))
+                {
+                    model.Results.Add(new FileSearchResult
+                    {
+                        Id = file.Id,
+                        Filename = file.FileName
+                    });
+                }
+            }
+
+            return model;
         }
     }
 }

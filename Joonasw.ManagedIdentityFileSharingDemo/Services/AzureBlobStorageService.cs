@@ -1,9 +1,11 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Joonasw.ManagedIdentityFileSharingDemo.Extensions;
 using Joonasw.ManagedIdentityFileSharingDemo.Options;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Claims;
 using System.Threading;
@@ -35,7 +37,14 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Services
         {
             var blobId = Guid.NewGuid();
             BlobClient client = GetBlobClient(blobId, user);
-            await client.UploadAsync(content, cancellationToken);
+            await client.UploadAsync(content, new BlobUploadOptions
+            {
+                Metadata = new Dictionary<string, string>
+                {
+                    ["userObjectId"] = user.GetObjectId(),
+                    ["userTenantId"] = user.GetTenantId()
+                }
+            }, cancellationToken);
             return blobId;
         }
 
