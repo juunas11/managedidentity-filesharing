@@ -57,7 +57,9 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Extensions
                 throw new ArgumentNullException(nameof(user));
             }
 
-            return user.FindFirstValue("name") ?? "Unknown";
+            return user.FindFirstValue("name")
+                ?? user.FindFirstValue(ClaimTypes.Name)
+                ?? "Unknown";
         }
 
         /// <summary>
