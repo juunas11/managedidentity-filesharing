@@ -16,7 +16,7 @@ namespace Joonasw.ManagedIdentityFileSharingDemo.Data
     /// </summary>
     public class ManagedIdentityConnectionInterceptor : DbConnectionInterceptor
     {
-        private static readonly TimeSpan RefreshTokenBeforeExpiry = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan RefreshTokenBeforeExpiry = TimeSpan.FromMinutes(4);
         private readonly IWebHostEnvironment _environment;
         private readonly TokenCredential _tokenCredential;
         private AccessToken _cachedToken;
