@@ -8,8 +8,8 @@ Organizational account users can see files uploaded by anyone in their organizat
 
 ## Setup instructions
 
-You'll need to have the .NET Core 3.1 SDK installed.
-You can use any editor with the project, though I used Visual Studio 2019.
+You'll need to have the .NET 6 SDK installed.
+You can use any editor with the project, though I used Visual Studio 2022.
 
 To enable sign-ins, you need to register an app in your Azure AD tenant.
 If you want to allow any account to sign in as originally intended,
@@ -22,14 +22,14 @@ If you deploy the app in Azure App Service, you can also add `https://yourappser
 
 ### Local setup
 
-To run the app locally, you need to have an SQL Server (Express should be fine) + Azure Storage Emulator.
+To run the app locally, you need to have an SQL Server (Express should be fine) + Azure Storage Emulator/Azurite.
 Modify appsettings.Development.json:
 
 - ConnectionStrings:DefaultConnection: Modify to point the app at your development database
 - Authentication:ClientId: The application id / client id of the app you registered in AAD
 
 You need to create the `files` container in your Storage Emulator.
-The app does not create the container as it won't have the right to do that in Azure.
+The app does not create the container; it expects it to be there.
 
 Create the database in your SQL Server and run the SetupScripts/Migrations.sql script in there.
 You can also run `dotnet ef` commands to migrate your database/generate the script.
@@ -42,14 +42,14 @@ In that case, you will need to update the Storage Emulator.
 
 ### Azure setup
 
-Deploy the ARM template located in the Joonasw.ManagedIdentityFileSharingDemo.ARM project.
+Deploy the Bicep/ARM template located in the Deployment folder.
 There is a parameter file that you can use,
 but you can also specify all the parameters at deployment time.
 
-Note you will have to know the Azure AD user who will be the "Active Directory admin" for the SQL server.
-You will need the user's username and object id (within the tenant linked to the subscription).
+Note you will have to know the Azure AD user/group that will be the "Active Directory admin" for the SQL server.
+You will need the user's username (or group's name) and object id (within the tenant linked to the subscription).
 
-After successfully deploying the ARM template, you can setup the Azure SQL database with
+After successfully deploying the template, you can setup the Azure SQL database with
 a script included in the SetupScripts folder.
 In order to run the script,
 *add your current client IP address to the SQL server firewall*.

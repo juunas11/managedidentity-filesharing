@@ -1,7 +1,21 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.10.13.619",
+      "templateHash": "8063604013354104102"
+    }
+  },
   "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure location for resources"
+      }
+    },
     "appInsightsName": {
       "type": "string",
       "metadata": {
@@ -27,7 +41,7 @@
       }
     },
     "sqlAdminPassword": {
-      "type": "securestring",
+      "type": "secureString",
       "metadata": {
         "description": "Password for SQL server admin"
       }
@@ -52,6 +66,7 @@
     },
     "appServicePlanTier": {
       "type": "string",
+      "defaultValue": "F1",
       "allowedValues": [
         "F1",
         "D1",
@@ -66,7 +81,6 @@
         "P3",
         "P4"
       ],
-      "defaultValue": "F1",
       "metadata": {
         "description": "Pricing tier of App Service Plan"
       }
@@ -106,14 +120,14 @@
     }
   },
   "variables": {
-    "storageBlobContributorRoleId": "[concat(subscription().Id, '/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe')]"
+    "storageBlobContributorRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]"
   },
   "resources": [
     {
       "type": "Microsoft.Insights/components",
-      "apiVersion": "2015-05-01",
+      "apiVersion": "2020-02-02",
       "name": "[parameters('appInsightsName')]",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "kind": "web",
       "properties": {
         "Application_Type": "web"
@@ -121,10 +135,9 @@
     },
     {
       "type": "Microsoft.Sql/servers",
-      "apiVersion": "2015-05-01-preview",
+      "apiVersion": "2021-08-01-preview",
       "name": "[parameters('sqlServerName')]",
-      "location": "[resourceGroup().location]",
-      "kind": "v12.0",
+      "location": "[parameters('location')]",
       "properties": {
         "administratorLogin": "[parameters('sqlAdminUsername')]",
         "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
@@ -133,58 +146,56 @@
     },
     {
       "type": "Microsoft.Sql/servers/administrators",
-      "apiVersion": "2014-04-01",
-      "name": "[concat(parameters('sqlServerName'), '/activeDirectory')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
-      ],
+      "apiVersion": "2021-08-01-preview",
+      "name": "[format('{0}/{1}', parameters('sqlServerName'), 'ActiveDirectory')]",
       "properties": {
         "administratorType": "ActiveDirectory",
         "login": "[parameters('sqlAadAdminUsername')]",
         "sid": "[parameters('sqlAadAdminObjectId')]",
         "tenantId": "[subscription().tenantId]"
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+      ]
     },
     {
       "type": "Microsoft.Sql/servers/databases",
-      "apiVersion": "2017-10-01-preview",
-      "name": "[concat(parameters('sqlServerName'), '/', parameters('sqlDatabaseName'))]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
-      ],
+      "apiVersion": "2021-08-01-preview",
+      "name": "[format('{0}/{1}', parameters('sqlServerName'), parameters('sqlDatabaseName'))]",
+      "location": "[parameters('location')]",
       "sku": {
         "name": "Basic",
         "tier": "Basic"
       },
-      "kind": "v12.0,user",
       "properties": {
         "collation": "SQL_Latin1_General_CP1_CI_AS",
         "maxSizeBytes": 2147483648,
         "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
         "zoneRedundant": false
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+      ]
     },
     {
       "type": "Microsoft.Sql/servers/firewallRules",
-      "apiVersion": "2014-04-01",
-      "name": "[concat(parameters('sqlServerName'), '/AllowAllWindowsAzureIps')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
-      ],
+      "apiVersion": "2021-08-01-preview",
+      "name": "[format('{0}/{1}', parameters('sqlServerName'), 'AllowAllWindowsAzureIps')]",
       "properties": {
         "startIpAddress": "0.0.0.0",
         "endIpAddress": "0.0.0.0"
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+      ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2019-04-01",
+      "apiVersion": "2021-08-01",
       "name": "[parameters('storageAccountName')]",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "sku": {
-        "name": "Standard_LRS",
-        "tier": "Standard"
+        "name": "Standard_LRS"
       },
       "kind": "StorageV2",
       "properties": {
@@ -210,52 +221,55 @@
       }
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
-      "apiVersion": "2019-04-01",
-      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('storageContainerName'))]",
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2021-08-01",
+      "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-      ],
-      "properties": {
-        "publicAccess": "None"
-      }
+      ]
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/blobServices/containers/providers/roleAssignments",
-      "apiVersion": "2018-01-01-preview",
-      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('storageContainerName'), '/Microsoft.Authorization/', guid(resourceGroup().id, 'webAppFilesAccess'))]",
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-08-01",
+      "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', parameters('storageContainerName'))]",
+      "properties": {
+        "publicAccess": "None"
+      },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-10-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}/blobServices/{1}/containers/{2}', parameters('storageAccountName'), 'default', parameters('storageContainerName'))]",
+      "name": "[guid(resourceGroup().id, 'webAppFilesAccess')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2021-03-01', 'full').identity.principalId]",
+        "roleDefinitionId": "[variables('storageBlobContributorRoleId')]"
+      },
+      "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('storageContainerName'))]",
         "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
-      ],
-      "properties": {
-        "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2016-08-01', 'Full').identity.principalId]",
-        "roleDefinitionId": "[variables('storageBlobContributorRoleId')]"
-      }
+      ]
     },
     {
       "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2016-09-01",
+      "apiVersion": "2021-03-01",
       "name": "[parameters('appServicePlanName')]",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "sku": {
         "name": "[parameters('appServicePlanTier')]",
         "capacity": "[parameters('appServicePlanCapacity')]"
       },
       "kind": "app",
-      "properties": {
-        "name": "[parameters('appServicePlanName')]"
-      }
+      "properties": {}
     },
     {
       "type": "Microsoft.Web/sites",
-      "apiVersion": "2016-08-01",
+      "apiVersion": "2021-03-01",
       "name": "[parameters('webAppName')]",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
-      ],
+      "location": "[parameters('location')]",
       "kind": "app",
       "identity": {
         "type": "SystemAssigned"
@@ -265,29 +279,17 @@
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
         "clientAffinityEnabled": false,
         "httpsOnly": true
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ]
     },
     {
       "type": "Microsoft.Web/sites/config",
-      "apiVersion": "2016-08-01",
-      "name": "[concat(parameters('webAppName'), '/web')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
-      ],
+      "apiVersion": "2021-03-01",
+      "name": "[format('{0}/{1}', parameters('webAppName'), 'web')]",
       "properties": {
         "use32BitWorkerProcess": true
-      }
-    },
-    {
-      "type": "Microsoft.Web/sites/config",
-      "apiVersion": "2016-08-01",
-      "name": "[concat(parameters('webAppName'), '/appsettings')]",
-      "properties": {
-        "Authentication__ClientId": "[parameters('aadAppClientId')]",
-        "Storage__AccountName": "[parameters('storageAccountName')]",
-        "Storage__FileContainerName": "[parameters('storageContainerName')]",
-        "HTTPS_PORT": "443",
-        "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2015-05-01').InstrumentationKey]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
@@ -295,12 +297,28 @@
     },
     {
       "type": "Microsoft.Web/sites/config",
-      "apiVersion": "2016-08-01",
-      "name": "[concat(parameters('webAppName'), '/connectionstrings')]",
+      "apiVersion": "2021-03-01",
+      "name": "[format('{0}/{1}', parameters('webAppName'), 'appsettings')]",
+      "properties": {
+        "Authentication__ClientId": "[parameters('aadAppClientId')]",
+        "Storage__AccountName": "[parameters('storageAccountName')]",
+        "Storage__FileContainerName": "[parameters('storageContainerName')]",
+        "HTTPS_PORT": "443",
+        "APPINSIGHTS_CONNECTIONSTRING": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName'))).ConnectionString]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', parameters('appInsightsName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2021-03-01",
+      "name": "[format('{0}/{1}', parameters('webAppName'), 'connectionstrings')]",
       "properties": {
         "DefaultConnection": {
           "type": "SQLAzure",
-          "value": "[concat('Server=tcp:', parameters('sqlServerName'), '.database.windows.net,1433;Initial Catalog=', parameters('sqlDatabaseName'),';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
+          "value": "[format('Server=tcp:{0}{1},1433;Initial Catalog={2};Authentication=Active Directory Managed Identity;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;', parameters('sqlServerName'), environment().suffixes.sqlServerHostname, parameters('sqlDatabaseName'))]"
         }
       },
       "dependsOn": [

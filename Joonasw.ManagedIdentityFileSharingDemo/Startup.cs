@@ -33,7 +33,10 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
         {
             AddMvc(services);
 
-            services.AddApplicationInsightsTelemetry(_configuration["APPINSIGHTS_INSTRUMENTATIONKEY"]);
+            services.AddApplicationInsightsTelemetry(o =>
+            {
+                o.ConnectionString = _configuration["APPINSIGHTS_CONNECTIONSTRING"];
+            });
 
             AddAuthentication(services);
 
@@ -95,11 +98,8 @@ namespace Joonasw.ManagedIdentityFileSharingDemo
         private void AddDatabase(IServiceCollection services, TokenCredential tokenCredential)
         {
             // Setup the interceptor that will add access tokens to database connections in Azure
-            var managedIdentityInterceptor = new ManagedIdentityConnectionInterceptor(
-                _environment,
-                tokenCredential);
             services.AddDbContext<AppDbContext>(
-                o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")).AddInterceptors(managedIdentityInterceptor),
+                o => o.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")),
                 ServiceLifetime.Transient);
         }
 
